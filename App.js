@@ -1,66 +1,65 @@
-import { useState, useEffect } from "react";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, SafeAreaView, FlatList } from "react-native";
-import { ListItem } from "./components/ListItem";
-import axios from "axios";
-import Constants from "expo-constants";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { FontAwesome } from "@expo/vector-icons";
+import { store, persistor } from "./store";
+import { PersistGate } from "redux-persist/integration/react";
+import { Provider } from "react-redux";
 
-const URL = `https://newsapi.org/v2/top-headlines?country=jp&category=business&apiKey=${Constants.manifest.extra.newsApiKey}`;
+import { HomeScreen } from "./screens/HomeScreen";
+import { ArticleScreen } from "./screens/ArticleScreen";
+import { ClipScreen } from "./screens/ClipScreen";
 
-export default function App() {
-  const [articles, setArticles] = useState([]);
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
-  const fetchArticles = async () => {
-    try {
-      const response = await axios.get(URL);
-      setArticles(response.data.articles);
-    } catch (error) {
-      console.log(error);
+const screenOption = ({ route }) => ({
+  tabBarIcon: ({ color, size }) => {
+    if (route.name === "HomeTab") {
+      return <FontAwesome name="home" size={size} color={color} />;
+    } else if (route.name === "ClipTab") {
+      return <FontAwesome name="bookmark" size={size} color={color} />;
     }
-  };
-
-  useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <FlatList
-        data={articles}
-        renderItem={({ item }) => (
-          <ListItem imageUrl={item.urlToImage} title={item.title} author={item.author} />
-        )}
-        keyExtractor={(item, index) => index.toString()}
-      />
-      <StatusBar style="auto" />
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#eee",
-  },
-  itemContainer: {
-    height: 100,
-    width: "100%",
-    flexDirection: "row",
-    backgroundColor: "white",
-  },
-  leftContainer: {
-    width: 100,
-  },
-  rightContainer: {
-    flex: 1,
-    padding: 10,
-    justifyContent: "space-between",
-  },
-  text: {
-    fontSize: 16,
-  },
-  subText: {
-    fontSize: 12,
-    color: "gray",
   },
 });
+
+const HomeStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Article" component={ArticleScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+};
+
+const ClipStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Clip" component={ClipScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Article" component={ArticleScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+};
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <NavigationContainer>
+          <Tab.Navigator screenOptions={screenOption}>
+            <Tab.Screen
+              name="HomeTab"
+              component={HomeStack}
+              options={{ headerShown: false, title: "Home" }}
+            />
+            <Tab.Screen
+              name="ClipTab"
+              component={ClipStack}
+              options={{ headerShown: false, title: "Clip" }}
+            />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </PersistGate>
+    </Provider>
+  );
+}
